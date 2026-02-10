@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-systemctl start aws-ssm-agent
+systemctl start amazon-ssm-agent
 
 # Create nodeadm configuration with registry mirror
 cat <<EOF > /etc/eks/nodeadm-config.yaml

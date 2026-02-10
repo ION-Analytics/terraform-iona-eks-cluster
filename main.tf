@@ -59,6 +59,8 @@ resource "aws_launch_template" "eks_node_group" {
 
     user_data = base64encode(templatefile("${path.module}/user_data.sh", {
         cluster_name        = aws_eks_cluster.cluster.name
+        cluster_endpoint    = aws_eks_cluster.cluster.endpoint
+        cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
         registry_mirror_url = var.registry_mirror_url
     }))
     

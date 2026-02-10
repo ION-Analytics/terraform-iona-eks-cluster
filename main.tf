@@ -33,35 +33,39 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 }
 
 resource "aws_launch_template" "eks_node_group" {
-  name_prefix   = "${var.name}-eks-node-template-"
-  
-  block_device_mappings {
-    device_name = "/dev/xvda"
+    name_prefix   = "${var.name}-eks-node-template-"
+
+    image_id      = data.aws_ssm_parameter.eks_ami_release_version.value
     
-    ebs {
-      volume_size = 20
-      volume_type = "gp3"
-      encrypted   = true
+    block_device_mappings {
+        device_name = "/dev/xvda"
+        
+        ebs {
+        volume_size = 20
+        volume_type = "gp3"
+        encrypted   = true
+        }
     }
-  }
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    cluster_name        = aws_eks_cluster.cluster.name
-    registry_mirror_url = var.registry_mirror_url
-  }))
-  
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
+    key_name = length(var.ssh_keys) > 0 ? var.ssh_keys[0] : null
 
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name = "${var.name}-eks-node"
+    user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+        cluster_name        = aws_eks_cluster.cluster.name
+        registry_mirror_url = var.registry_mirror_url
+    }))
+    
+    metadata_options {
+        http_endpoint               = "enabled"
+        http_tokens                 = "required"
+        http_put_response_hop_limit = 1
     }
-  }
+
+    tag_specifications {
+        resource_type = "instance"
+        tags = {
+        Name = "${var.name}-eks-node"
+        }
+    }
 }
 
 resource "aws_eks_node_group" "node_group" {
@@ -83,7 +87,7 @@ resource "aws_eks_node_group" "node_group" {
     
     launch_template {
       id      = aws_launch_template.eks_node_group.id
-      version = aws_eks_cluster.cluster.version
+      version = "$Latest"
     }
     
     # dynamic remote_access {
@@ -152,13 +156,13 @@ resource "aws_eks_addon" "pod_identity" {
 }
 
 resource "aws_eks_access_policy_association" "admin_access" {
-  cluster_name  = aws_eks_cluster.cluster.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.iam_role_eks_admin_access
+    cluster_name  = aws_eks_cluster.cluster.name
+    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+    principal_arn = var.iam_role_eks_admin_access
 
-  access_scope {
-    type       = "cluster"
-  }
+    access_scope {
+        type       = "cluster"
+    }
 }
 
 resource "aws_eks_access_policy_association" "deployment_access" {

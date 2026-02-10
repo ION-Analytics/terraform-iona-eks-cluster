@@ -78,21 +78,21 @@ resource "aws_eks_node_group" "node_group" {
 
     instance_types = var.woker_node_instance_types
 
-    version = aws_eks_cluster.cluster.version
+    //version = aws_eks_cluster.cluster.version
     release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
     
     launch_template {
       id      = aws_launch_template.eks_node_group.id
-      version = "$Latest"
+      version = aws_eks_cluster.cluster.version
     }
     
-    dynamic remote_access {
-        for_each = var.ssh_keys
-        content {
-            ec2_ssh_key = remote_access.value
-            source_security_group_ids = [aws_security_group.eks_cluster_sg_allow_ssh.id]
-        }
-    }
+    # dynamic remote_access {
+    #     for_each = var.ssh_keys
+    #     content {
+    #         ec2_ssh_key = remote_access.value
+    #         source_security_group_ids = [aws_security_group.eks_cluster_sg_allow_ssh.id]
+    #     }
+    # }
 
     tags = {
         Name = "${var.name}-eks-node-group-asg"

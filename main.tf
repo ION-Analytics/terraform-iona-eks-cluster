@@ -28,14 +28,18 @@ resource "aws_eks_cluster" "cluster" {
 
 }
 
-data "aws_ssm_parameter" "eks_ami_release_version" {
-  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
+data "aws_ami_ids" "eks_ami" {
+    owners = ["amazon"]
+    filter {
+        name   = "name"
+        values = ["amazon-eks-node-al2023-x86_64-standard-${var.kubernetes_version}-*"]
+    }
 }
 
 resource "aws_launch_template" "eks_node_group" {
     name_prefix   = "${var.name}-eks-node-template-"
 
-    image_id      = data.aws_ssm_parameter.eks_ami_release_version.value
+    image_id      = data.aws_ami_ids.eks_ami.ids[0]
     
     block_device_mappings {
         device_name = "/dev/xvda"

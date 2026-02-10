@@ -28,6 +28,10 @@ resource "aws_eks_cluster" "cluster" {
 
 }
 
+data "aws_ssm_parameter" "eks_ami_release_version" {
+  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
+}
+
 data "aws_ami_ids" "eks_ami" {
     owners = ["amazon"]
     filter {
@@ -39,7 +43,7 @@ data "aws_ami_ids" "eks_ami" {
 resource "aws_launch_template" "eks_node_group" {
     name_prefix   = "${var.name}-eks-node-template-"
 
-    image_id      = data.aws_ami_ids.eks_ami.ids[0]
+    image_id      = data.aws_ssm_parameter.eks_ami_release_version.arn
     
     block_device_mappings {
         device_name = "/dev/xvda"

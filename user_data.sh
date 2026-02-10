@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+systemctl start aws-ssm-agent
+
 # Create nodeadm configuration with registry mirror
 cat <<EOF > /etc/eks/nodeadm-config.yaml
 ---
@@ -11,6 +13,7 @@ spec:
     name: ${cluster_name}
     apiServerEndpoint: ${cluster_endpoint}
     certificateAuthority: ${cluster_ca_data}
+    cidr: ${cluster_cidr}
   containerd:
     config: |
       version = 2
@@ -22,3 +25,5 @@ EOF
 
 # Initialize the node using nodeadm
 /usr/bin/nodeadm init -c file:///etc/eks/nodeadm-config.yaml
+
+

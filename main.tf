@@ -61,6 +61,7 @@ resource "aws_launch_template" "eks_node_group" {
         cluster_name        = aws_eks_cluster.cluster.name
         cluster_endpoint    = aws_eks_cluster.cluster.endpoint
         cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
+        cluster_cidr        = aws_eks_cluster.cluster.kubernetes_network_config[0].service_ipv4_cidr
         registry_mirror_url = var.registry_mirror_url
     }))
     

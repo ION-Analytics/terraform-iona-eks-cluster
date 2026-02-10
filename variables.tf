@@ -44,8 +44,20 @@ variable "inbound_cidr_blocks" {
     description = "List of CIDR blocks for inbound traffic to EKS cluster security group"
     type        = list(string)
 }
+
 variable "woker_node_instance_types" {
     description = "List of EC2 instance types for EKS worker nodes"
     type        = list(string)
     default     = ["t3.medium"]
+}
+
+variable "deployment_teams" {
+    description = "List of teams with deployment access to the EKS cluster"
+    type        = list(string)
+    default     = []
+}
+
+variable "registry_mirror_url" {
+    description = "Container registry mirror URL for Docker Hub images"
+    type        = string
 }

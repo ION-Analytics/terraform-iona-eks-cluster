@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_eks_cluster" "cluster" {
     name    = var.name
     role_arn = aws_iam_role.eks_cluster_role.arn
@@ -30,6 +32,38 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
 }
 
+resource "aws_launch_template" "eks_node_group" {
+  name_prefix   = "${var.name}-eks-node-template-"
+  
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    
+    ebs {
+      volume_size = 20
+      volume_type = "gp3"
+      encrypted   = true
+    }
+  }
+
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    cluster_name        = aws_eks_cluster.cluster.name
+    registry_mirror_url = var.registry_mirror_url
+  }))
+  
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "${var.name}-eks-node"
+    }
+  }
+}
+
 resource "aws_eks_node_group" "node_group" {
     cluster_name    = aws_eks_cluster.cluster.name
     node_group_name = "${var.name}-eks-node-group-asg"
@@ -47,7 +81,10 @@ resource "aws_eks_node_group" "node_group" {
     version = aws_eks_cluster.cluster.version
     release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
     
-    disk_size      = 20
+    launch_template {
+      id      = aws_launch_template.eks_node_group.id
+      version = "$Latest"
+    }
     
     dynamic remote_access {
         for_each = var.ssh_keys
@@ -122,4 +159,15 @@ resource "aws_eks_access_policy_association" "admin_access" {
   access_scope {
     type       = "cluster"
   }
+}
+
+resource "aws_eks_access_policy_association" "deployment_access" {
+    for_each = to_set(var.deployment_teams)
+    cluster_name  = aws_eks_cluster.cluster.name
+    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+    principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${each.value}"
+
+    access_scope {
+      type  = "cluster"
+    }
 }

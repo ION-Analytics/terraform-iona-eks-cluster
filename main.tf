@@ -43,7 +43,7 @@ data "aws_ami_ids" "eks_ami" {
 resource "aws_launch_template" "eks_node_group" {
     name_prefix   = "${var.name}-eks-node-template-"
 
-    image_id      = data.aws_ssm_parameter.eks_ami_release_version.arn
+    image_id      = data.aws_ami_ids.eks_ami.ids[0]
     
     block_device_mappings {
         device_name = "/dev/xvda"

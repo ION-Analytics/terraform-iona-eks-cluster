@@ -91,7 +91,7 @@ resource "aws_eks_node_group" "node_group" {
     instance_types = var.woker_node_instance_types
 
     //version = aws_eks_cluster.cluster.version
-    release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+    //release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
     
     launch_template {
       id      = aws_launch_template.eks_node_group.id

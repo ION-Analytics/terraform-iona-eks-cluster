@@ -162,7 +162,7 @@ resource "aws_eks_access_policy_association" "admin_access" {
 }
 
 resource "aws_eks_access_policy_association" "deployment_access" {
-    for_each = to_set(var.deployment_teams)
+    for_each = toset(var.deployment_teams)
     cluster_name  = aws_eks_cluster.cluster.name
     policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
     principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${each.value}"

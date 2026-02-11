@@ -77,7 +77,8 @@ resource "aws_launch_template" "eks_node_group" {
             Name = "${var.name}-eks-node"
         }
     }
-    security_group_names = [aws_security_group.eks_cluster_sg_allow_ssh.name]
+
+    vpc_security_group_ids = [aws_security_group.eks_cluster_sg_allow_ssh.id]
 }
 
 resource "aws_eks_node_group" "node_group" {
@@ -85,14 +86,14 @@ resource "aws_eks_node_group" "node_group" {
     node_group_name = "${var.name}-eks-node-group-asg"
     node_role_arn   = aws_iam_role.eks_node_role.arn
     subnet_ids      = aws_eks_cluster.cluster.vpc_config[0].subnet_ids
-
+    
     scaling_config {
         desired_size = 2
         max_size     = 3
         min_size     = 1
     }
 
-    instance_types = var.woker_node_instance_types
+    instance_types = var.worker_node_instance_types
 
     //version = aws_eks_cluster.cluster.version
     //release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)

@@ -45,7 +45,7 @@ variable "inbound_cidr_blocks" {
     type        = list(string)
 }
 
-variable "woker_node_instance_types" {
+variable "worker_node_instance_types" {
     description = "List of EC2 instance types for EKS worker nodes"
     type        = list(string)
     default     = ["t3.medium"]

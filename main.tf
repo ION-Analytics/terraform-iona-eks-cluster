@@ -57,13 +57,13 @@ resource "aws_launch_template" "eks_node_group" {
 
     key_name = length(var.ssh_keys) > 0 ? var.ssh_keys[0] : null
 
-    user_data = base64encode(templatefile("${path.module}/user_data.config", {
-        cluster_name        = aws_eks_cluster.cluster.name
-        cluster_endpoint    = aws_eks_cluster.cluster.endpoint
-        cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
-        cluster_cidr        = aws_eks_cluster.cluster.kubernetes_network_config[0].service_ipv4_cidr
-        registry_mirror_url = var.registry_mirror_url
-    }))
+    # user_data = base64encode(templatefile("${path.module}/user_data.config", {
+    #     cluster_name        = aws_eks_cluster.cluster.name
+    #     cluster_endpoint    = aws_eks_cluster.cluster.endpoint
+    #     cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
+    #     cluster_cidr        = aws_eks_cluster.cluster.kubernetes_network_config[0].service_ipv4_cidr
+    #     registry_mirror_url = var.registry_mirror_url
+    # }))
     
     metadata_options {
         http_endpoint               = "enabled"
@@ -74,9 +74,10 @@ resource "aws_launch_template" "eks_node_group" {
     tag_specifications {
         resource_type = "instance"
         tags = {
-        Name = "${var.name}-eks-node"
+            Name = "${var.name}-eks-node"
         }
     }
+    security_group_names = [aws_security_group.eks_cluster_sg_allow_ssh.name]
 }
 
 resource "aws_eks_node_group" "node_group" {

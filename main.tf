@@ -57,18 +57,18 @@ resource "aws_launch_template" "eks_node_group" {
 
     key_name = length(var.ssh_keys) > 0 ? var.ssh_keys[0] : null
 
-    # user_data = base64encode(templatefile("${path.module}/user_data.config", {
-    #     cluster_name        = aws_eks_cluster.cluster.name
-    #     cluster_endpoint    = aws_eks_cluster.cluster.endpoint
-    #     cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
-    #     cluster_cidr        = aws_eks_cluster.cluster.kubernetes_network_config[0].service_ipv4_cidr
-    #     registry_mirror_url = var.registry_mirror_url
-    # }))
+    user_data = base64encode(templatefile("${path.module}/user_data.yaml", {
+        cluster_name        = aws_eks_cluster.cluster.name
+        cluster_endpoint    = aws_eks_cluster.cluster.endpoint
+        cluster_ca_data     = aws_eks_cluster.cluster.certificate_authority[0].data
+        cluster_cidr        = aws_eks_cluster.cluster.kubernetes_network_config[0].service_ipv4_cidr
+        registry_mirror_url = var.registry_mirror_url
+    }))
     
     metadata_options {
         http_endpoint               = "enabled"
         http_tokens                 = "required"
-        http_put_response_hop_limit = 1
+        http_put_response_hop_limit = 2
     }
 
     tag_specifications {
@@ -88,103 +88,20 @@ resource "aws_eks_node_group" "node_group" {
     subnet_ids      = aws_eks_cluster.cluster.vpc_config[0].subnet_ids
     
     scaling_config {
-        desired_size = 2
+        desired_size = 1
         max_size     = 3
-        min_size     = 1
+        min_size     = 0
     }
 
     instance_types = var.worker_node_instance_types
-
-    //version = aws_eks_cluster.cluster.version
-    //release_version = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
-    
+  
     launch_template {
       id      = aws_launch_template.eks_node_group.id
       version = "$Latest"
     }
     
-    # dynamic remote_access {
-    #     for_each = var.ssh_keys
-    #     content {
-    #         ec2_ssh_key = remote_access.value
-    #         source_security_group_ids = [aws_security_group.eks_cluster_sg_allow_ssh.id]
-    #     }
-    # }
-
     tags = {
         Name = "${var.name}-eks-node-group-asg"
     }
 }
 
-data "aws_eks_addon_version" "vpc_cni"{
-    addon_name         = "vpc-cni"
-    kubernetes_version = aws_eks_cluster.cluster.version
-    most_recent        = true
-}
-
-resource "aws_eks_addon" "vpc_cni" {
-    cluster_name    = aws_eks_cluster.cluster.name
-    addon_name      = "vpc-cni"
-    addon_version   = data.aws_eks_addon_version.vpc_cni.version
-    depends_on      = [aws_eks_cluster.cluster]
-}
-
-data "aws_eks_addon_version" "kube_proxy"{
-    addon_name = "kube-proxy"
-    kubernetes_version = aws_eks_cluster.cluster.version
-    most_recent        = true
-}
-resource "aws_eks_addon" "kube_proxy" {
-    cluster_name    = aws_eks_cluster.cluster.name
-    addon_name      = "kube-proxy"
-    addon_version   = data.aws_eks_addon_version.kube_proxy.version
-    depends_on      = [aws_eks_cluster.cluster]
-}
-
-data "aws_eks_addon_version" "core_dns"{
-    addon_name         = "coredns"
-    kubernetes_version = aws_eks_cluster.cluster.version
-    most_recent        = true
-}
-
-resource "aws_eks_addon" "core_dns" {
-    cluster_name    = aws_eks_cluster.cluster.name
-    addon_name      = "coredns"
-    addon_version   = data.aws_eks_addon_version.core_dns.version
-    depends_on      = [aws_eks_cluster.cluster]
-}
-
-data "aws_eks_addon_version" "pod_identity"{
-    addon_name         = "eks-pod-identity-agent"
-    kubernetes_version = aws_eks_cluster.cluster.version
-    most_recent        = true
-
-}
-
-resource "aws_eks_addon" "pod_identity" {
-    cluster_name    = aws_eks_cluster.cluster.name
-    addon_name      = "eks-pod-identity-agent"
-    addon_version   = data.aws_eks_addon_version.pod_identity.version
-    depends_on      = [aws_eks_cluster.cluster]
-}
-
-resource "aws_eks_access_policy_association" "admin_access" {
-    cluster_name  = aws_eks_cluster.cluster.name
-    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-    principal_arn = var.iam_role_eks_admin_access
-
-    access_scope {
-        type       = "cluster"
-    }
-}
-
-resource "aws_eks_access_policy_association" "deployment_access" {
-    for_each = toset(var.deployment_teams)
-    cluster_name  = aws_eks_cluster.cluster.name
-    policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-    principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${each.value}"
-
-    access_scope {
-      type  = "cluster"
-    }
-}

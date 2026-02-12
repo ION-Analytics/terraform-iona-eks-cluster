@@ -1,4 +1,4 @@
-resource "aws_eks_access_entry" "deployment_team_access" {
+resource "aws_eks_access_entry" "admin_access" {
   for_each = toset(var.deployment_teams)
   cluster_name      = aws_eks_cluster.cluster.name
   principal_arn     = var.iam_role_eks_admin_access
